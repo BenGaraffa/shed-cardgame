@@ -1,5 +1,6 @@
 from random import randrange, seed
 from time import sleep
+import os
 
 
 CARD_SUITS = ["♤", "♧", "♡", "♢"]
@@ -19,7 +20,6 @@ class Shed:
         self.minHandSize = 3
         self.turn = 0
         self.running = True
-        print(sum([card.magic for card in self.__deck]))
 
     def dealAllHands(self):
         for location in ["faceDown", "faceUp", "hand"]:
@@ -27,29 +27,66 @@ class Shed:
                 for i in range(self.playerCount):
                     getattr(self.players[i], location).append(self.__deck.pop())
 
+    def generateOptions(self):
+        # Generate options for the current player
+        return ['swapFaceUps'], ['swap face up cards']
+
     def play(self):
         self.dealAllHands()
-        self.print()
 
         # Take turns swapping hand cards with face up cards
 
         while self.running:
+            self.print()
             # 1 Make choice
+            answer = None
+            while answer is None:
+                optFuncs, optStrs = self.generateOptions()
+                optStrs = ' '.join([f'{chr(i + 97)}) {opt}' for i, opt in enumerate(optStrs)])
+                answer = input("Options: " + optStrs)
+
             # 2 Check end state
+
+
             # 3 update turn counter
-            print(f"player {self.players[self.turn].name}'s turn")
-            sleep(3)
-            
             self.turn = (self.turn + 1) % self.playerCount
 
     def print(self):
-        print(f"Deck {self.__deck}")
-        for i, player in enumerate(self.players):
-            print(f"Player {i}:")
-            print(f"    - Face down: {player.faceDown}")
-            print(f"    - Face up: {player.faceUp}")
-            print(f"    - Hand: {player.hand}")
+        os.system('cls')
+        print(f"## player {self.players[self.turn].name}'s turn ##")
+        print('opponents: {opponent\'s name}(face ups)[no of face downs]:\n', end='')
+        for i in [(i + self.turn) % self.playerCount for i in range(self.playerCount)][1:]:
+            print('{' + str(self.players[i].name) + '}', end='')
+            print(f'( {self.__fCards(self.players[i].faceUp)})', end='')
+            print(f'[{len(self.players[i].faceDown)}]', end='   ')
+        
+        dk = len(self.__deck)
+        dk = dk if dk > 0 else '--'
+        hp = self.heap[-1] if len(self.heap) > 0 else "--"
+        print(f"""\n
+            ┌────────────────────────────────┐
+            │                  ┌──────┐      │
+            │       ┌──────┐  ┌┤xxxxxx│      │
+            │       │      │  ││x    x│      │
+            │       │      │  ││x {dk:<3}x│      │
+            │       │  {hp}  │  ││x    x│      │
+            │       │      │  ││xxxxxx│      │
+            │       │      │  │┼─────┬┘      │
+            │       └──────┘  └──────┘       │
+            │         heap      deck         │
+            └────────────────────────────────┘
+            """)
+        player = self.players[self.turn]
+        print(f'face downs left: {len(player.faceDown)}')
+        print(f'your face ups: \t\t{self.__fCards(player.faceUp)}')
+        print(f'your hand: \t\t{self.__fCards(player.hand)}\n')
 
+    @staticmethod
+    def __fCards(cards):
+        string = ''
+        for card in cards:
+            string += card.__repr__() + ' '
+        return string
 
 class Player:
     def __init__(self, name):
@@ -57,6 +94,19 @@ class Player:
         self.hand = []
         self.faceDown = []
         self.faceUp = []
+
+    def swapFaceUps(self):
+        answer = None
+        while answer is None:
+            answer = input(
+                f"which pair to swap?: "
+            ).strip().lower()
+            if answer == 'y': answer = True
+            elif answer == 'n': answer = False
+            else: answer = None
+
+        if answer:
+            print("!!!")
 
 
 class Deck(list):
@@ -101,7 +151,7 @@ class InvalidPlayerCount(Exception):
 
 
 def main():
-    game = Shed(2)
+    game = Shed(4)
     game.play()
     
 if __name__ == "__main__":
