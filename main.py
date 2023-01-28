@@ -29,7 +29,7 @@ class Shed:
 
     def generateOptions(self):
         # Generate options for the current player
-        return ['swapFaceUps'], ['swap face up cards']
+        return ['swapFaceUps', None], ['swap face up cards', 'skip']
 
     def play(self):
         self.dealAllHands()
@@ -42,8 +42,18 @@ class Shed:
             answer = None
             while answer is None:
                 optFuncs, optStrs = self.generateOptions()
-                optStrs = ' '.join([f'{chr(i + 97)}) {opt}' for i, opt in enumerate(optStrs)])
-                answer = input("Options: " + optStrs)
+                optKeys = [chr(i + 97) for i in range(len(optStrs))]
+                optStrs = [f'{key}) {opt}' for key, opt in zip(optKeys, optStrs)]
+
+                answer = input("Options: " + ' '.join(optStrs) + ' :').strip().lower()
+                if answer not in optKeys:
+                    answer = None
+                else:
+                    function = optFuncs[optKeys.index(answer)]
+                
+                if function is not None and \
+                    not getattr(self.players[self.turn], function)():
+                        answer = None
 
             # 2 Check end state
 
@@ -54,12 +64,16 @@ class Shed:
     def print(self):
         os.system('cls')
         print(f"## player {self.players[self.turn].name}'s turn ##")
+        
+        # Display opponents
         print('opponents: {opponent\'s name}(face ups)[no of face downs]:\n', end='')
         for i in [(i + self.turn) % self.playerCount for i in range(self.playerCount)][1:]:
-            print('{' + str(self.players[i].name) + '}', end='')
-            print(f'( {self.__fCards(self.players[i].faceUp)})', end='')
-            print(f'[{len(self.players[i].faceDown)}]', end='   ')
+            player = self.players[i]
+            print('{' + str(player.name) + '}', end='')
+            print(f'( {self.__fCards(player.faceUp)} )', end='')
+            print(f'[{len(player.faceDown)}]', end='   ')
         
+        # Display table
         dk = len(self.__deck)
         dk = dk if dk > 0 else '--'
         hp = self.heap[-1] if len(self.heap) > 0 else "--"
@@ -76,6 +90,8 @@ class Shed:
             │         heap      deck         │
             └────────────────────────────────┘
             """)
+        
+        # Display player
         player = self.players[self.turn]
         print(f'face downs left: {len(player.faceDown)}')
         print(f'your face ups: \t\t{self.__fCards(player.faceUp)}')
@@ -86,7 +102,7 @@ class Shed:
         string = ''
         for card in cards:
             string += card.__repr__() + ' '
-        return string
+        return string[:-1]
 
 class Player:
     def __init__(self, name):
@@ -106,7 +122,7 @@ class Player:
             else: answer = None
 
         if answer:
-            print("!!!")
+            print("!!!") 
 
 
 class Deck(list):
